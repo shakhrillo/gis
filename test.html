@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Custom WMS Layer from GeoBretagne</title>
+    <link
+      rel="stylesheet"
+      href="https://js.arcgis.com/4.29/esri/themes/light/main.css"
+    />
+    <script src="https://js.arcgis.com/4.32/"></script>
+
+    <style>
+      html,
+      body,
+      #viewDiv {
+        padding: 0;
+        margin: 0;
+        height: 100%;
+        width: 100%;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="viewDiv"></div>
+
+    <script>
+      require([
+        "esri/Map",
+        "esri/views/MapView",
+        "esri/layers/BaseDynamicLayer",
+        "esri/geometry/support/webMercatorUtils"
+      ], (Map, MapView, BaseDynamicLayer, webMercatorUtils) => {
+        const CustomWMSLayer = BaseDynamicLayer.createSubclass({
+          properties: {
+            wmsUrl: null,
+            layers: null
+          },
+
+          // This is where the WMS image is fetched and rendered
+          fetchImage: function (extent, width, height, options) {
+            const bbox = extent.xmin + "," + extent.ymin + "," + extent.xmax + "," + extent.ymax;
+            const srs = "EPSG:3857"; // Web Mercator
+
+            const wmsRequestUrl = this.wmsUrl +
+              "?service=WMS&request=GetMap&version=1.3.0" +
+              "&layers=" + this.layers +
+              "&styles=" +
+              "&bbox=" + bbox +
+              "&width=" + width +
+              "&height=" + height +
+              "&crs=" + srs +
+              "&format=image/png" +
+              "&transparent=true";
+
+            return fetch(wmsRequestUrl)
+              .then(response => response.blob())
+              .then(blob => createImageBitmap(blob))
+              .then(imageBitmap => {
+                return {
+                  image: imageBitmap,
+                  width: width,
+                  height: height
+                };
+              });
+          }
+        });
+
+        const wmsLayer = new CustomWMSLayer({
+          wmsUrl: "https://geobretagne.fr/geoserver/cadastre/ows",
+          layers: "cadastre:batiments", // Replace with your actual layer name
+          title: "GeoBretagne WMS"
+        });
+
+        const map = new Map({
+          basemap: "topo-vector",
+          layers: [wmsLayer]
+        });
+
+        const view = new MapView({
+          container: "viewDiv",
+          map: map,
+          center: [-3.4, 48.4], // Brittany
+          zoom: 12
+        });
+      });
+    </script>
+  </body>
+</html>

@@ -3,112 +3,81 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
-    <title>Custom DynamicLayer | Sample | ArcGIS Maps SDK for JavaScript 4.32</title>
+    <title>Custom WMS Layer | ArcGIS Maps SDK 4.32</title>
 
     <link rel="stylesheet" href="https://js.arcgis.com/4.32/esri/themes/light/main.css" />
-
     <style>
-      html,
-      body,
-      #viewDiv {
-        padding: 0;
+      html, body, #viewDiv {
         margin: 0;
+        padding: 0;
         height: 100%;
         width: 100%;
       }
     </style>
-
+  </head>
+  <body>
+    <div id="viewDiv"></div>
     <script src="https://js.arcgis.com/4.32/"></script>
 
     <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            require([
-              "esri/Map",
-              "esri/views/MapView",
-              "esri/layers/BaseDynamicLayer",
-              "esri/widgets/LayerList",
-              "esri/core/urlUtils"
-            ], (Map, MapView, BaseDynamicLayer, LayerList) => {
-              const CustomWMSLayer = BaseDynamicLayer.createSubclass({
-                properties: {
-                  mapUrl: null,
-                  mapParameters: null
-                },
-      
-                getImageUrl: function (extent, width, height){
-                  const url = `https://ukair.maps.rcdo.co.uk/ukairserver/services/aq_amb_2022/Arsenic_viridis/MapServer/WMSServer`;
-                  const params = {
-                      SERVICE: "WMS",
-                      VERSION: "1.3.0",
-                      REQUEST: "GetMap",
-                        LAYERS: "1",       
-                        STYLES: "",        
-                      FORMAT: "image/png",
-                      TRANSPARENT: "TRUE",
-                      CRS: `EPSG:${extent.spatialReference.isWebMercator ? 3857 : extent.spatialReference.wkid}`,
-                      BBOX: `${extent.xmin},${extent.ymin},${extent.xmax},${extent.ymax}`,
-                      WIDTH: width,
-                      HEIGHT: height
-                  };
-                  const queryString = Object.keys(params)
-                    .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
-                    .join("&");
-      
-                    console.log('queryString', `${url}?${queryString}`);
-                  return `${url}?${queryString}`;
-      
-                }
-              });
-      
-              // create the custom WMS layer with
-              // url parameters
-              const wmsLayer = new CustomWMSLayer({
-                mapUrl: "https://geobretagne.fr/geoserver/cadastre/ows",
-                mapParameters: {
-                  SERVICE: "WMS",
-                  REQUEST: "GetMap",
-                  FORMAT: "image/png",
-                  TRANSPARENT: "TRUE",
-                  STYLES: "",
-                  VERSION: "1.3.0",
-                  LAYERS: "CP.CadastralParcel",
-                  WIDTH: "{width}",
-                  HEIGHT: "{height}",
-                  CRS: "EPSG:{wkid}",
-                  BBOX: "{xmin},{ymin},{xmax},{ymax}"
-                },
-      
-                // minScale: 20000,
-                title: "Cadastral Parcel"
-              });
-      
-              // create a new instance of a map
-              // add the wms layer to the map
-      
-              const map = new Map({
-                basemap: "topo-vector",
-                layers: [wmsLayer]
-              });
-      
-              // create a new instance of the view
-              const view = new MapView({
-                container: "viewDiv",
-                map: map,
-                center: [-0.1276, 51.5074], // London
-                zoom: 16
-              });
-      
-              // create a new layer list
-              const layerList = new LayerList({
-                view: view
-              });
-              view.ui.add(layerList, "top-right");
-            });
-        });
-    </script>
-  </head>
+      require([
+        "esri/Map",
+        "esri/views/MapView",
+        "esri/layers/BaseDynamicLayer",
+        "esri/widgets/LayerList"
+      ], (Map, MapView, BaseDynamicLayer, LayerList) => {
+        
+        // Define a custom dynamic layer that pulls WMS images
+        const CustomWMSLayer = BaseDynamicLayer.createSubclass({
+          getImageUrl: function (extent, width, height) {
+            const wmsUrl = "https://ukair.maps.rcdo.co.uk/ukairserver/services/aq_amb_2022/Arsenic_viridis/MapServer/WMSServer";
+            const crs = extent.spatialReference.isWebMercator ? "EPSG:3857" : `EPSG:${extent.spatialReference.wkid}`;
+            
+            const params = {
+              SERVICE: "WMS",
+              VERSION: "1.3.0",
+              REQUEST: "GetMap",
+              LAYERS: "1",
+              STYLES: "",
+              FORMAT: "image/png",
+              TRANSPARENT: "TRUE",
+              CRS: crs,
+              BBOX: `${extent.xmin},${extent.ymin},${extent.xmax},${extent.ymax}`,
+              WIDTH: width,
+              HEIGHT: height
+            };
 
-  <body>
-    <div id="viewDiv"></div>
+            const queryString = new URLSearchParams(params).toString();
+            const finalUrl = `${wmsUrl}?${queryString}`;
+
+            console.log("WMS Request URL:", finalUrl);
+            return finalUrl;
+          }
+        });
+
+        // Create an instance of the custom layer
+        const wmsLayer = new CustomWMSLayer({
+          title: "UK-Air Arsenic (WMS)"
+        });
+
+        // Initialize the map with the custom WMS layer
+        const map = new Map({
+          basemap: "topo-vector",
+          layers: [wmsLayer]
+        });
+
+        // Set up the view
+        const view = new MapView({
+          container: "viewDiv",
+          map: map,
+          center: [-0.1276, 51.5074], // London
+          zoom: 10
+        });
+
+        // Add layer list widget
+        const layerList = new LayerList({ view });
+        view.ui.add(layerList, "top-right");
+      });
+    </script>
   </body>
 </html>

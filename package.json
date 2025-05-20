@@ -22,7 +22,8 @@
   "nodemonConfig": {
     "watch": [
       "server.js",
-      "dynamiclayer.js"
+      "public/**/*",
+      "templates/**/*"
     ],
     "ext": "js,json",
     "exec": "node server.js"

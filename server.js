@@ -27,8 +27,8 @@ app.get('/', (req, res) => {
 });
 
 // load index.html
-app.get('/index.html', (req, res) => {
-  res.sendFile(__dirname + '/dynamiclayer.html');
+app.get('/map', (req, res) => {
+  res.sendFile(__dirname + '/templates/map.html');
 });
 
 app.listen(3030, () => {

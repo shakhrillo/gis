@@ -1,13 +1,11 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>Custom WMS Layer from GeoBretagne</title>
-    <link
-      rel="stylesheet"
-      href="https://js.arcgis.com/4.29/esri/themes/light/main.css"
-    />
-    <script src="https://js.arcgis.com/4.32/"></script>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+    <title>Custom DynamicLayer | Sample | ArcGIS Maps SDK for JavaScript 4.32</title>
+
+    <link rel="stylesheet" href="https://js.arcgis.com/4.32/esri/themes/light/main.css" />
 
     <style>
       html,
@@ -19,71 +17,122 @@
         width: 100%;
       }
     </style>
-  </head>
 
-  <body>
-    <div id="viewDiv"></div>
+    <script src="https://js.arcgis.com/4.32/"></script>
 
     <script>
       require([
         "esri/Map",
         "esri/views/MapView",
         "esri/layers/BaseDynamicLayer",
-        "esri/geometry/support/webMercatorUtils"
-      ], (Map, MapView, BaseDynamicLayer, webMercatorUtils) => {
+        "esri/widgets/LayerList",
+        "esri/core/urlUtils"
+      ], (Map, MapView, BaseDynamicLayer, LayerList) => {
+        // *******************************************************
+        // Create a subclass of BaseDynamicLayer
+        // *******************************************************
         const CustomWMSLayer = BaseDynamicLayer.createSubclass({
           properties: {
-            wmsUrl: null,
-            layers: null
+            mapUrl: null,
+            mapParameters: null
           },
 
-          // This is where the WMS image is fetched and rendered
-          fetchImage: function (extent, width, height, options) {
-            const bbox = extent.xmin + "," + extent.ymin + "," + extent.xmax + "," + extent.ymax;
-            const srs = "EPSG:3857"; // Web Mercator
+          // Override the getImageUrl() method to generate URL
+          // to an image for a given extent, width, and height.
+          getImageUrl: function (extent, width, height){
+            const urlVariables = this._prepareQuery(this.mapParameters, extent, width, height);
+            const queryString = this._joinUrlVariables(urlVariables);
+            console.log(`WMS Request URL: ${this.mapUrl}?${queryString}`);
+            return this.mapUrl + "?" + queryString;
+          },
 
-            const wmsRequestUrl = this.wmsUrl +
-              "?service=WMS&request=GetMap&version=1.3.0" +
-              "&layers=" + this.layers +
-              "&styles=" +
-              "&bbox=" + bbox +
-              "&width=" + width +
-              "&height=" + height +
-              "&crs=" + srs +
-              "&format=image/png" +
-              "&transparent=true";
+          // Prepare query parameters for the URL to an image to be generated
+          _prepareQuery: function (queryParameters, extent, width, height) {
+            const wkid = extent.spatialReference.isWebMercator ? 3857 : extent.spatialReference.wkid;
+            const replacers = {
+              width: width,
+              height: height,
+              wkid: wkid,
+              xmin: extent.xmin,
+              xmax: extent.xmax,
+              ymin: extent.ymin,
+              ymax: extent.ymax
+            };
 
-            return fetch(wmsRequestUrl)
-              .then(response => response.blob())
-              .then(blob => createImageBitmap(blob))
-              .then(imageBitmap => {
-                return {
-                  image: imageBitmap,
-                  width: width,
-                  height: height
-                };
-              });
+            const urlVariables = this._replace({}, queryParameters, replacers);
+            return urlVariables;
+          },
+
+          // replace the url variables with the application provided values
+          _replace: (urlVariables, queryParameters, replacers) => {
+            Object.keys(queryParameters).forEach((key) => {
+              urlVariables[key] = Object.keys(replacers).reduce((previous, replacerKey) => {
+                return previous.replace("{" + replacerKey + "}", replacers[replacerKey]);
+              }, queryParameters[key]);
+            });
+
+            return urlVariables;
+          },
+
+          // join the url parameters
+          _joinUrlVariables: (urlVariables) => {
+            return Object.keys(urlVariables).reduce((previous, key) => {
+              return previous + (previous ? "&" : "") + key + "=" + urlVariables[key];
+            }, "");
           }
         });
+        // *******************************************************
+        // end of custom dynamic layer
+        // *******************************************************
 
+        // create the custom WMS layer with
+        // url parameters
         const wmsLayer = new CustomWMSLayer({
-          wmsUrl: "https://geobretagne.fr/geoserver/cadastre/ows",
-          layers: "cadastre:batiments", // Replace with your actual layer name
-          title: "GeoBretagne WMS"
+          mapUrl: "https://geobretagne.fr/geoserver/cadastre/ows",
+          mapParameters: {
+            SERVICE: "WMS",
+            REQUEST: "GetMap",
+            FORMAT: "image/png",
+            TRANSPARENT: "TRUE",
+            STYLES: "",
+            VERSION: "1.3.0",
+            LAYERS: "CP.CadastralParcel",
+            WIDTH: "{width}",
+            HEIGHT: "{height}",
+            CRS: "EPSG:{wkid}",
+            BBOX: "{xmin},{ymin},{xmax},{ymax}"
+          },
+
+          minScale: 20000,
+          title: "Cadastral Parcel"
         });
+
+        // create a new instance of a map
+        // add the wms layer to the map
 
         const map = new Map({
           basemap: "topo-vector",
           layers: [wmsLayer]
         });
 
+        // create a new instance of the view
         const view = new MapView({
           container: "viewDiv",
           map: map,
-          center: [-3.4, 48.4], // Brittany
-          zoom: 12
+          center: [-4.487534, 48.388673],
+          zoom: 16
         });
+
+        // create a new layer list
+        const layerList = new LayerList({
+          view: view
+        });
+        view.ui.add(layerList, "top-right");
       });
     </script>
+  </head>
+
+  <body>
+    <div id="viewDiv"></div>
   </body>
 </html>

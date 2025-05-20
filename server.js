@@ -11,8 +11,18 @@ app.use(cors({
     origin: '*'
 }));
 
-app.get('/', (req, res) => {
+app.get('/arsenic', (req, res) => {
   const baseUrl = 'https://ukair.maps.rcdo.co.uk/ukairserver/services/aq_amb_2022/Arsenic_viridis/MapServer/WMSServer';
+  
+  const queryString = new URLSearchParams(req.query).toString();
+  const targetUrl = baseUrl + (queryString ? `?${queryString}` : '');
+
+  request(targetUrl).pipe(res);
+});
+
+// https://ukair.maps.rcdo.co.uk/ukairserver/services/aq_amb_2022/BaP_viridis/MapServer/WMSServer?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetCapabilities
+app.get('/aq', (req, res) => {
+  const baseUrl = 'https://ukair.maps.rcdo.co.uk/ukairserver/services/aq_amb_2022/BaP_viridis/MapServer/WMSServer';
   
   const queryString = new URLSearchParams(req.query).toString();
   const targetUrl = baseUrl + (queryString ? `?${queryString}` : '');

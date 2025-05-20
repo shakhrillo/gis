@@ -6,8 +6,8 @@ require([
 ], (Map, MapView, LayerList, CustomWMSLayer) => {
 
     // Create an instance of the custom layer
-    const wmsLayer = new CustomWMSLayer({
-        mapUrl: "http://localhost:3030",
+    const wmsLayerArsenic = new CustomWMSLayer({
+        mapUrl: "http://localhost:3030/arsenic",
         mapParameters: {
         SERVICE: "WMS",
         VERSION: "1.3.0",
@@ -25,10 +25,32 @@ require([
         title: "UK-Air Arsenic (WMS)"
     });
 
+    const wmsLayerAq = new CustomWMSLayer({
+        mapUrl: "http://localhost:3030/aq",
+        mapParameters: {
+        SERVICE: "WMS",
+        VERSION: "1.3.0",
+        REQUEST: "GetMap",
+        LAYERS: "1",
+        STYLES: "",
+        FORMAT: "image/png",
+        TRANSPARENT: "TRUE",
+        CRS: "EPSG:{wkid}",
+        BBOX: "{xmin},{ymin},{xmax},{ymax}",
+        WIDTH: "{width}",
+        HEIGHT: "{height}"
+        },
+        // minScale: 20000000,
+        title: "UK-Air AQ (WMS)"
+    });
+
     // Initialize the map with the custom WMS layer
     const map = new Map({
         basemap: "topo-vector",
-        layers: [wmsLayer]
+        layers: [
+            wmsLayerArsenic,
+            wmsLayerAq
+        ]
     });
 
     // Set up the view

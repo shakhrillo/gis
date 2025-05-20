@@ -4,6 +4,9 @@ define(["esri/layers/BaseDynamicLayer"], function (BaseDynamicLayer) {
             super(options);
             this.mapUrl = options.mapUrl;
             this.mapParameters = options.mapParameters;
+
+            // Set title
+            this.title = options.title || "Custom WMS Layer";
         }
 
         getImageUrl(extent, width, height) {
